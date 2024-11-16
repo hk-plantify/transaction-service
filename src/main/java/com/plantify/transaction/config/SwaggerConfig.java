@@ -1,4 +1,4 @@
-package com.plantify.transaction.global.config;
+package com.plantify.transaction.config;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.info.Info;

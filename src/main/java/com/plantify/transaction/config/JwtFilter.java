@@ -1,4 +1,4 @@
-package com.plantify.transaction.global.config;
+package com.plantify.transaction.config;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

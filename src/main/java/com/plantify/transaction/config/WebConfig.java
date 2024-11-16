@@ -1,4 +1,4 @@
-package com.plantify.transaction.global.config;
+package com.plantify.transaction.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;

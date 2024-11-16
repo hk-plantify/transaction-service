@@ -1,4 +1,4 @@
-package com.plantify.transaction.global.config;
+package com.plantify.transaction.config;
 
 import org.jasypt.encryption.StringEncryptor;
 import org.jasypt.encryption.pbe.PooledPBEStringEncryptor;
