@@ -1,3 +1,18 @@
 spring:
   application:
     name: transaction
+  jta:
+    enable: true
+  datasource:
+    payment:
+      xa:
+        data-source-class-name: com.mysql.cj.jdbc.MysqlXADataSource
+      url: ENC(XYQfF38yBcoqFC1fHT1r+F+pC0DoqsFGsSCI/if3s7/5HNL3UcVkpWZgnrReBc0LPeUJANdVya4eILW/IEl/AACLm6357c2bpJudUeBtMo0=)
+      username:
+      password: ENC(cOWaniGDoCFEXR9v+wRBVEwsJ5Hg6vQN)
+    transaction:
+      xa:
+        data-source-class-name: com.mysql.cj.jdbc.MysqlXADataSource
+      url: ENC(90rjpDPV+N9q3x+BxFIezg/ag9+yat1tWDOmO5PwdZlXWZG/WETZbgwZvEGu4nyIJAg3cZXzA4hZIITanki39Mh05xRR2/Fxu+gJ5ziIRwg=)
+      username: ENC(XhGT41xwg0J9hSXkV9tPjQ==)
+      password: ENC(cOWaniGDoCFEXR9v+wRBVEwsJ5Hg6vQN)
