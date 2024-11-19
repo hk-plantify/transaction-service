@@ -28,13 +28,20 @@ public class Transaction {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    private TransactionType transactionType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Status status;
 
-    @Column(nullable = true)
-    private String errorCode;
+    @Column(nullable = false)
+    private Long amount;
 
     @Column(nullable = true)
-    private Long retryCount;
+    private Long balanceAfter;
+
+    @Column(nullable = false)
+    private String reason;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
