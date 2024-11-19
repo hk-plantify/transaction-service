@@ -1,6 +1,6 @@
 package com.plantify.transaction.global.exception.errorcode;
 
-import com.plantify.payment.global.exception.ErrorCode;
+import com.plantify.transaction.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 
