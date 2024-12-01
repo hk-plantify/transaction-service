@@ -1,25 +1,33 @@
 package com.plantify.transaction.kafka;
 
-import com.plantify.transaction.domain.dto.TransactionRequestMessage;
-import com.plantify.transaction.domain.dto.TransactionStatusUpdateMessage;
-import com.plantify.transaction.service.TransactionService;
+import com.plantify.transaction.domain.dto.TransactionStatusMessage;
+import com.plantify.transaction.service.TransactionStatusService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class TransactionConsumer {
 
-    private final TransactionService transactionService;
+    private final TransactionStatusService transactionStatusService;
 
-    @KafkaListener(topics = "transaction-request", groupId = "transaction-service-group")
-    public void handleTransactionRequest(TransactionRequestMessage message) {
-        transactionService.createTransaction(message);
-    }
-
-    @KafkaListener(topics = "transaction-status-update", groupId = "transaction-service-group")
-    public void handleTransactionStatusUpdate(TransactionStatusUpdateMessage message) {
-        transactionService.updateTransactionStatus(message.transactionId(), message.status());
+    @KafkaListener(
+            topics = "${spring.kafka.topic.transaction-status}",
+            groupId = "${spring.kafka.consumer.group-id}",
+            containerFactory = "kafkaListenerContainerFactory"
+    )
+    public void handleTransactionStatus(TransactionStatusMessage message) {
+        try {
+            switch (message.status()) {
+                case "SUCCESS" -> transactionStatusService.processSuccessfulTransaction(message);
+                case "FAILED" -> transactionStatusService.processFailedTransaction(message);
+                default -> log.warn("Unknown status: {}", message.status());
+            }
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
     }
 }

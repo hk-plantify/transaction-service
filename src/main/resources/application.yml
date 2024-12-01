@@ -26,7 +26,25 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    topic:
+      transaction-status: transaction.status
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
 
 auth:
   service:
     url: http://localhost:8080
+payment:
+  service:
+    url: http://localhost:9091
+server:
+  port: 1111
