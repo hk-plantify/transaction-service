@@ -1,3 +1,50 @@
+jasypt:
+  encryptor:
+    bean: jasyptStringEncryptor
+    password: ${JASYPT_PASSWORD}
+
 spring:
   application:
-    name: transaction
+    name: pay
+  datasource:
+    url: ENC(ox20N75lSmaNhUxP9nnl4eDu/0tc+rQ+jyFleqX96Qh8nKQ1LXnFSPcl5/dVKIBSEGPpk5Bx3iiASOZm1VvjMVoyG9djG04MxlUWNWLcWIU=)
+    username: ENC(XhGT41xwg0J9hSXkV9tPjQ==)
+    password: ENC(cOWaniGDoCFEXR9v+wRBVEwsJ5Hg6vQN)
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    database: mysql
+    show-sql: true
+    hibernate:
+      ddl-auto: create
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: pay-service-group
+      auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    topic:
+      transaction-status: transaction.status
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+auth:
+  service:
+    url: http://localhost:8080
+payment:
+  service:
+    url: http://localhost:9091
+server:
+  port: 1111
