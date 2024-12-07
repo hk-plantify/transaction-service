@@ -5,6 +5,5 @@ public enum TransactionType {
     REFUND,
     CANCELLATION,
     POINT_REWARD,
-    POINT_REDEEM,
-    DEPOSIT
+    POINT_REDEEM
 }
