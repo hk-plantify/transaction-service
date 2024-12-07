@@ -15,8 +15,10 @@ public class RedisLock {
 
     public boolean tryLock(String key, long timeoutMillis) {
         String value = UUID.randomUUID().toString();
+        System.out.println(stringRedisTemplate.hasKey(key));
         Boolean success = stringRedisTemplate.opsForValue()
                 .setIfAbsent(key, value, Duration.ofMillis(timeoutMillis));
+        System.out.println(success);
         return Boolean.TRUE.equals(success);
     }
 
