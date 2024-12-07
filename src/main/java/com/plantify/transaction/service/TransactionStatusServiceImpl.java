@@ -1,11 +1,11 @@
 package com.plantify.transaction.service;
 
-import com.plantify.transaction.config.RedisLock;
 import com.plantify.transaction.domain.dto.TransactionStatusMessage;
 import com.plantify.transaction.domain.entity.Status;
 import com.plantify.transaction.domain.entity.Transaction;
 import com.plantify.transaction.global.exception.ApplicationException;
 import com.plantify.transaction.global.exception.errorcode.TransactionErrorCode;
+import com.plantify.transaction.global.util.DistributedLock;
 import com.plantify.transaction.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,52 +17,39 @@ import org.springframework.transaction.annotation.Transactional;
 public class TransactionStatusServiceImpl implements TransactionStatusService {
 
     private final TransactionRepository transactionRepository;
-    private final RedisLock redisLock;
-
-    private static final int LOCK_TIMEOUT_MS = 3000;
+    private final DistributedLock distributedLock;
 
     // 성공
     @Override
     public void processSuccessfulTransaction(TransactionStatusMessage message) {
-        String lockKey = String.format("transaction:%d", message.userId());
+        String lockKey = String.format("transaction:result:%d", message.userId());
 
         try {
-            if (!redisLock.tryLock(lockKey, LOCK_TIMEOUT_MS)) {
-                throw new ApplicationException(TransactionErrorCode.CONCURRENT_UPDATE);
-            }
+            distributedLock.tryLockOrThrow(lockKey);
 
-            Transaction transaction = transactionRepository.findByTransactionId(message.transactionId())
+            Transaction transaction = transactionRepository.findById(message.transactionId())
                     .orElseThrow(() -> new ApplicationException(TransactionErrorCode.TRANSACTION_NOT_FOUND));
 
-            transaction = transaction.toBuilder()
-                    .status(Status.SUCCESS)
-                    .balanceAfter(message.amount())
-                    .build();
-            transactionRepository.save(transaction);
+            transaction.updateStatus(Status.SUCCESS);
         } finally {
-            redisLock.unlock(lockKey);
+            distributedLock.unlock(lockKey);
         }
     }
 
     // 실패
     @Override
     public void processFailedTransaction(TransactionStatusMessage message) {
-        String lockKey = String.format("transaction:%d", message.userId());
+        String lockKey = String.format("transaction:result:%d", message.userId());
 
         try {
-            if (!redisLock.tryLock(lockKey, LOCK_TIMEOUT_MS)) {
-                throw new ApplicationException(TransactionErrorCode.CONCURRENT_UPDATE);
-            }
+            distributedLock.tryLockOrThrow(lockKey);
 
-            Transaction transaction = transactionRepository.findByTransactionId(message.transactionId())
+            Transaction transaction = transactionRepository.findById(message.transactionId())
                     .orElseThrow(() -> new ApplicationException(TransactionErrorCode.TRANSACTION_NOT_FOUND));
 
-            transaction = transaction.toBuilder()
-                    .status(Status.FAILED)
-                    .build();
-            transactionRepository.save(transaction);
+            transaction.updateStatus(Status.FAILED);
         } finally {
-            redisLock.unlock(lockKey);
+            distributedLock.unlock(lockKey);
         }
     }
 }

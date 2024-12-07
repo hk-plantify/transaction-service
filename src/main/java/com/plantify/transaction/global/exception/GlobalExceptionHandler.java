@@ -14,7 +14,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ApplicationException.class)
     public ResponseEntity<ApiResponse<Void>> handleApplicationException(ApplicationException e) {
         HttpStatus status = e.getHttpStatus();
+        log.error(e.getMessage(), e);
         ApiResponse<Void> response = ApiResponse.fail(status, e.getMessage());
         return ResponseEntity.status(status).body(response);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ApiResponse<String> handleException(Exception e) {
+        log.error(e.getMessage(), e);
+        return ApiResponse.fail(HttpStatus.INTERNAL_SERVER_ERROR, "알 수 없는 에러");
     }
 }
