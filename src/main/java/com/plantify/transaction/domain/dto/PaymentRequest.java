@@ -9,9 +9,7 @@ public record PaymentRequest(
         Long orderId,
         String orderName,
         Long sellerId,
-        Long amount,
-        String transactionType,
-        String status
+        Long amount
 ) {
 
     public Transaction toEntity() {
@@ -21,8 +19,8 @@ public record PaymentRequest(
                 .orderName(orderName)
                 .sellerId(sellerId)
                 .amount(amount)
-                .transactionType(TransactionType.valueOf(transactionType))
-                .status(Status.valueOf(status))
+                .transactionType(TransactionType.PAYMENT)
+                .status(Status.PENDING)
                 .reason(null)
                 .build();
     }

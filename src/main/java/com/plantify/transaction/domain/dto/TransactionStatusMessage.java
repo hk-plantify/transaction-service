@@ -8,7 +8,7 @@ public record TransactionStatusMessage(
         Long userId,
         Long orderId,
         Long amount,          
-        String status
+        Status status
 ) {
 
     public static TransactionStatusMessage from(Transaction transaction) {
@@ -17,7 +17,7 @@ public record TransactionStatusMessage(
                 transaction.getUserId(),
                 transaction.getOrderId(),
                 transaction.getAmount(),
-                transaction.getStatus().name()
+                transaction.getStatus()
         );
     }
 }

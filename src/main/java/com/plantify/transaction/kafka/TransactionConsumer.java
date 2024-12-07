@@ -27,8 +27,8 @@ public class TransactionConsumer {
     public void handleTransactionStatus(TransactionStatusMessage message) {
         try {
             switch (message.status()) {
-                case "SUCCESS" -> transactionStatusService.processSuccessfulTransaction(message);
-                case "FAILED" -> transactionStatusService.processFailedTransaction(message);
+                case SUCCESS -> transactionStatusService.processSuccessfulTransaction(message);
+                case FAILED -> transactionStatusService.processFailedTransaction(message);
                 default -> log.warn("Unknown status: {}", message.status());
             }
         } catch (Exception e) {
