@@ -23,6 +23,18 @@ public class Transaction {
     @Column(nullable = false)
     private Long userId;
 
+    @Column
+    private Long paymentId;
+
+    @Column(nullable = false)
+    private Long orderId;
+
+    @Column(nullable = false)
+    private String orderName;
+
+    @Column(nullable = false)
+    private Long amount;
+
     @Column(nullable = false)
     private Long sellerId;
 
@@ -34,13 +46,7 @@ public class Transaction {
     @Column(nullable = false)
     private Status status;
 
-    @Column(nullable = false)
-    private Long amount;
-
-    @Column(nullable = true)
-    private Long balanceAfter;
-
-    @Column(nullable = false)
+    @Column
     private String reason;
 
     @Column(nullable = false, updatable = false)
@@ -58,5 +64,14 @@ public class Transaction {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    public Transaction updateStatus(Status status) {
+        this.status = status;
+        return this;
+    }
+
+    public void updatePaymentId(Long paymentId) {
+        this.paymentId = paymentId;
     }
 }
