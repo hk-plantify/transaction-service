@@ -4,25 +4,26 @@ import com.plantify.transaction.domain.entity.Status;
 import com.plantify.transaction.domain.entity.Transaction;
 import com.plantify.transaction.domain.entity.TransactionType;
 
-public record TransactionRequest(
+public record PaymentRequest(
         Long userId,
-        Long sellerId,
         Long orderId,
         String orderName,
+        Long sellerId,
         Long amount,
         String transactionType,
-        String reason
+        String status
 ) {
+
     public Transaction toEntity() {
         return Transaction.builder()
                 .userId(userId)
-                .sellerId(sellerId)
                 .orderId(orderId)
                 .orderName(orderName)
+                .sellerId(sellerId)
                 .amount(amount)
                 .transactionType(TransactionType.valueOf(transactionType))
-                .status(Status.PENDING)
-                .reason(reason)
+                .status(Status.valueOf(status))
+                .reason(null)
                 .build();
     }
 }
