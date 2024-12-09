@@ -61,10 +61,10 @@ public class TransactionServiceImpl implements TransactionService {
             PaymentResponse paymentResponse = paymentServiceClient.processPayment(request);
             transaction.updateStatus(Status.valueOf(paymentResponse.status()))
                     .updatePaymentId(paymentResponse.paymentId());
-
             transactionRepository.save(transaction);
 
             transactionProvider.sendTransactionStatusMessage(TransactionStatusMessage.from(transaction));
+
             return TransactionResponse.from(transaction);
         } finally {
             distributedLock.unlock(lockKey);
