@@ -30,12 +30,9 @@ spring:
         sasl.mechanism: SCRAM-SHA-256
         sasl.jaas.config: org.apache.kafka.common.security.scram.ScramLoginModule required username="user1" password="mzdCmxMG42";
     producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
     topic:
       transaction-status: transaction-status
-      producer:
-        value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
   data:
     redis:
       host: redis-master.kafka.svc.cluster.local
