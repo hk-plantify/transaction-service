@@ -23,13 +23,17 @@ spring:
     consumer:
       group-id: pay-service-group
       auto-offset-reset: earliest
-      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.deserializer.value.delegate.class: org.apache.kafka.common.serialization.ByteArrayDeserializer
+        spring.json.trusted.packages: "*"
     producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
     topic:
-      transaction-status: transaction.status
+      transaction-status: transaction-status
   data:
     redis:
       host: redis-master.kafka.svc.cluster.local
