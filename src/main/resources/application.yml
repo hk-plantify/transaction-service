@@ -23,18 +23,19 @@ spring:
     consumer:
       group-id: pay-service-group
       auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
-        spring.json.trusted.packages: "*"
-        security.protocol: PLAINTEXT
+        spring.deserializer.value.delegate.class: org.apache.kafka.common.serialization.ByteArrayDeserializer
+        security.protocol: SASL_PLAINTEXT
+        sasl.mechanism: SCRAM-SHA-256
+        sasl.jaas.config: org.apache.kafka.common.security.scram.ScramLoginModule required username="user1" password="mzdCmxMG42";
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      properties:
-        spring.json.add.type.headers: false
     topic:
       transaction-status: transaction-status
+      producer:
+        value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
   data:
     redis:
       host: redis-master.kafka.svc.cluster.local
