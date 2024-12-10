@@ -9,7 +9,7 @@ public interface TransactionService {
 
     TransactionResponse getTransactionById(Long transactionId);
     TransactionResponse createPendingTransaction(PaymentRequest request);
-    TransactionResponse createPayTransaction(PaymentRequest request);
-    boolean existTransaction(Long userId, Long orderId, List<Status> statuses);
+    TransactionResponse createPayTransaction(PayTransactionRequest request);
+    boolean existTransaction(Long userId, String orderId, List<Status> statuses);
     TransactionResponse createRefundTransaction(TransactionRequest request);
 }

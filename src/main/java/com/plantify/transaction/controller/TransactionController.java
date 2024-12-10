@@ -32,14 +32,14 @@ public class TransactionController {
 
     // 페이 트랜잭션 생성
     @PostMapping("/payments")
-    public ApiResponse<TransactionResponse> createPayTransaction(@RequestBody PaymentRequest request) {
+    public ApiResponse<TransactionResponse> createPayTransaction(@RequestBody PayTransactionRequest request) {
         TransactionResponse response = transactionService.createPayTransaction(request);
         return ApiResponse.ok(response);
     }
 
     // 트랜잭션 존재 여부 확인
     @GetMapping("/exist")
-    public boolean existTransaction(@RequestParam Long userId, @RequestParam Long orderId, @RequestParam List<Status> statusList) {
+    public boolean existTransaction(@RequestParam Long userId, @RequestParam String orderId, @RequestParam List<Status> statusList) {
         return transactionService.existTransaction(userId, orderId, statusList);
     }
 

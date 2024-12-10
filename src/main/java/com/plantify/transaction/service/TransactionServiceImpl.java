@@ -27,7 +27,14 @@ public class TransactionServiceImpl implements TransactionService {
     private final DistributedLock distributedLock;
 
     @Override
-    public boolean existTransaction(Long userId, Long orderId, List<Status> statuses) {
+    public TransactionResponse getTransactionById(Long transactionId) {
+        Transaction transaction = transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new ApplicationException(TransactionErrorCode.TRANSACTION_NOT_FOUND));
+        return TransactionResponse.from(transaction);
+    }
+
+    @Override
+    public boolean existTransaction(Long userId, String orderId, List<Status> statuses) {
         return transactionRepository.existsByUserIdAndOrderIdAndStatusIn(userId, orderId, statuses);
     }
 
@@ -40,8 +47,7 @@ public class TransactionServiceImpl implements TransactionService {
             distributedLock.tryLockOrThrow(lockKey);
 
             Transaction transaction = transactionRepository
-                    .save(request.toEntity())
-                    .updateStatus(Status.PENDING);
+                    .save(request.toEntity());
             transactionRepository.save(transaction);
 
             return TransactionResponse.from(transaction);
@@ -51,14 +57,24 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    public TransactionResponse createPayTransaction(PaymentRequest request) {
-        String lockKey = String.format("transaction:%d", request.userId());
+    public TransactionResponse createPayTransaction(PayTransactionRequest request) {
+        Transaction transaction = transactionRepository.findById(request.transactionId())
+                .orElseThrow(() -> new ApplicationException(TransactionErrorCode.TRANSACTION_NOT_FOUND));
 
-        Transaction transaction = transactionRepository.save(request.toEntity());
+        String lockKey = String.format("transaction:%d", transaction.getUserId());
+
         try {
             distributedLock.tryLockOrThrow(lockKey);
 
-            PaymentResponse paymentResponse = paymentServiceClient.processPayment(request);
+            PaymentRequest paymentRequest = new PaymentRequest(
+                    transaction.getUserId(),
+                    transaction.getOrderId(),
+                    transaction.getOrderName(),
+                    transaction.getSellerId(),
+                    transaction.getAmount()
+            );
+            PaymentResponse paymentResponse = paymentServiceClient.processPayment(paymentRequest);
+
             transaction.updateStatus(Status.valueOf(paymentResponse.status()))
                     .updatePaymentId(paymentResponse.paymentId());
             transactionRepository.save(transaction);
@@ -69,13 +85,6 @@ public class TransactionServiceImpl implements TransactionService {
         } finally {
             distributedLock.unlock(lockKey);
         }
-    }
-
-    @Override
-    public TransactionResponse getTransactionById(Long transactionId) {
-        Transaction transaction = transactionRepository.findById(transactionId)
-                .orElseThrow(() -> new ApplicationException(TransactionErrorCode.TRANSACTION_NOT_FOUND));
-        return TransactionResponse.from(transaction);
     }
 
     @Override

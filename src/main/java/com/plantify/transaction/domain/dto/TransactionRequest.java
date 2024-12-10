@@ -7,7 +7,7 @@ import com.plantify.transaction.domain.entity.TransactionType;
 public record TransactionRequest(
         Long userId,
         Long sellerId,
-        Long orderId,
+        String orderId,
         String orderName,
         Long amount,
         String transactionType,

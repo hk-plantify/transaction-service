@@ -6,7 +6,7 @@ import com.plantify.transaction.domain.entity.Transaction;
 public record TransactionStatusMessage(
         Long transactionId,
         Long userId,
-        Long orderId,
+        String orderId,
         Long amount,          
         Status status
 ) {

@@ -6,7 +6,7 @@ import com.plantify.transaction.domain.entity.TransactionType;
 
 public record PaymentRequest(
         Long userId,
-        Long orderId,
+        String orderId,
         String orderName,
         Long sellerId,
         Long amount

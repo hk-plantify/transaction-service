@@ -1,8 +1,5 @@
 package com.plantify.transaction.domain.dto;
 
-import com.plantify.transaction.domain.entity.Status;
-import com.plantify.transaction.domain.entity.TransactionType;
-
 import java.time.LocalDateTime;
 
 public record PaymentResponse(

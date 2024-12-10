@@ -1,18 +1,14 @@
 package com.plantify.transaction.domain.dto;
 
-import com.plantify.transaction.domain.entity.Status;
 import com.plantify.transaction.domain.entity.Transaction;
-import com.plantify.transaction.domain.entity.TransactionType;
-import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 
-@Slf4j
 public record TransactionResponse(
         Long transactionId,
         Long userId,
         Long paymentId,
-        Long orderId,
+        String orderId,
         String orderName,
         Long amount,
         Long sellerId,
