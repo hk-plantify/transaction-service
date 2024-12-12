@@ -46,8 +46,7 @@ public class TransactionServiceImpl implements TransactionService {
         try {
             distributedLock.tryLockOrThrow(lockKey);
 
-            Transaction transaction = transactionRepository
-                    .save(request.toEntity());
+            Transaction transaction = transactionRepository.save(request.toEntity());
             transactionRepository.save(transaction);
 
             return TransactionResponse.from(transaction);
@@ -71,7 +70,8 @@ public class TransactionServiceImpl implements TransactionService {
                     transaction.getOrderId(),
                     transaction.getOrderName(),
                     transaction.getSellerId(),
-                    transaction.getAmount()
+                    transaction.getAmount(),
+                    transaction.getRedirectUri()
             );
             PaymentResponse paymentResponse = paymentServiceClient.processPayment(paymentRequest);
 

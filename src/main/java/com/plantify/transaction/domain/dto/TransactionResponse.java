@@ -15,6 +15,7 @@ public record TransactionResponse(
         String transactionType,
         String status,
         String reason,
+        String redirectUri,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -31,6 +32,7 @@ public record TransactionResponse(
                 transaction.getTransactionType().name(),
                 transaction.getStatus().name(),
                 transaction.getReason(),
+                transaction.getRedirectUri(),
                 transaction.getCreatedAt(),
                 transaction.getUpdatedAt()
         );

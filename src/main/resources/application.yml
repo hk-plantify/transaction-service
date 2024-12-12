@@ -51,3 +51,9 @@ auth:
 payment:
   service:
     url: http://payment-service.payment.svc.cluster.local:8080
+
+client:
+  base:
+    url: ENC(6r5+iURZyGrnWE3rn4C1XXhxZpzilbAqGkb4WdQs0fijyMzoZxHRhA==)
+  pay:
+    url: ENC(/uXzU5HIg+xvMvQly3thAhGTo/e34W6r0vUsx2vxZvZ4YS7krpmwtPdkBXQzdG5AKi099JD742k=)

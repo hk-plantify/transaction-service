@@ -55,6 +55,9 @@ public class Transaction {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column
+    private String redirectUri;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

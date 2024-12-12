@@ -9,7 +9,8 @@ public record PaymentRequest(
         String orderId,
         String orderName,
         Long sellerId,
-        Long amount
+        Long amount,
+        String redirectUri
 ) {
 
     public Transaction toEntity() {
@@ -22,6 +23,7 @@ public record PaymentRequest(
                 .transactionType(TransactionType.PAYMENT)
                 .status(Status.PENDING)
                 .reason(null)
+                .redirectUri(redirectUri)
                 .build();
     }
 }
