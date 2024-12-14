@@ -8,8 +8,9 @@ import java.util.List;
 public interface TransactionService {
 
     TransactionResponse getTransactionById(Long transactionId);
-    TransactionResponse createPendingTransaction(PaymentRequest request);
-    TransactionResponse createPayTransaction(PayTransactionRequest request);
     boolean existTransaction(Long userId, String orderId, List<Status> statuses);
-    TransactionResponse createRefundTransaction(TransactionRequest request);
+    TransactionResponse createPendingTransaction(TransactionRequest request);
+    TransactionResponse updateTransactionToSuccess(PayTransactionRequest request);
+    TransactionResponse updateTransactionToRefund(UpdateTransactionRequest request);
+    TransactionResponse updateTransactionToCancellation(UpdateTransactionRequest request);
 }

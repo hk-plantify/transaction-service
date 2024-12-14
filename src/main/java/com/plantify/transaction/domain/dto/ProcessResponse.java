@@ -1,18 +1,18 @@
 package com.plantify.transaction.domain.dto;
 
+import com.plantify.transaction.domain.entity.Status;
+
 import java.time.LocalDateTime;
 
-public record PaymentResponse(
-        Long transactionId,
-        Long userId,
+public record ProcessResponse(
         Long paymentId,
-        Long orderId,
+        Long userId,
+        Long transactionId,
+        String orderId,
         String orderName,
-        Long sellerId,
+        Long amount,
+        Status status,
         String method,
-        String amount,
-        String transactionType,
-        String status,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {

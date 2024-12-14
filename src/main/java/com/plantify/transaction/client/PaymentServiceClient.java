@@ -1,7 +1,7 @@
 package com.plantify.transaction.client;
 
-import com.plantify.transaction.domain.dto.PaymentRequest;
-import com.plantify.transaction.domain.dto.PaymentResponse;
+import com.plantify.transaction.domain.dto.*;
+import com.plantify.transaction.global.response.ApiResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -10,5 +10,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 public interface PaymentServiceClient {
 
     @PostMapping("/v1/payments/process")
-    PaymentResponse processPayment(@RequestBody PaymentRequest request);
+    ApiResponse<ProcessResponse> processPayment(@RequestBody PaymentRequest request);
+
+    @PostMapping("/v1/payments/process/refunds")
+    ApiResponse<ProcessResponse> processRefund(@RequestBody RefundRequest request);
+
+    @PostMapping("/v1/payments/process/cancellations")
+    ApiResponse<ProcessResponse> processCancellation(@RequestBody CancellationRequest request);
+
 }

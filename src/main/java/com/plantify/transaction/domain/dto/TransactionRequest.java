@@ -2,7 +2,6 @@ package com.plantify.transaction.domain.dto;
 
 import com.plantify.transaction.domain.entity.Status;
 import com.plantify.transaction.domain.entity.Transaction;
-import com.plantify.transaction.domain.entity.TransactionType;
 
 public record TransactionRequest(
         Long userId,
@@ -10,8 +9,7 @@ public record TransactionRequest(
         String orderId,
         String orderName,
         Long amount,
-        String transactionType,
-        String reason
+        String redirectUri
 ) {
     public Transaction toEntity() {
         return Transaction.builder()
@@ -20,9 +18,8 @@ public record TransactionRequest(
                 .orderId(orderId)
                 .orderName(orderName)
                 .amount(amount)
-                .transactionType(TransactionType.valueOf(transactionType))
                 .status(Status.PENDING)
-                .reason(reason)
+                .redirectUri(redirectUri)
                 .build();
     }
 }

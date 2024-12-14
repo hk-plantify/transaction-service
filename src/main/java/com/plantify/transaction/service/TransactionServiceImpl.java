@@ -40,14 +40,13 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     @Transactional
-    public TransactionResponse createPendingTransaction(PaymentRequest request) {
+    public TransactionResponse createPendingTransaction(TransactionRequest request) {
         String lockKey = String.format("transaction:%d", request.userId());
 
         try {
             distributedLock.tryLockOrThrow(lockKey);
 
             Transaction transaction = transactionRepository.save(request.toEntity());
-            transactionRepository.save(transaction);
 
             return TransactionResponse.from(transaction);
         } finally {
@@ -56,7 +55,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    public TransactionResponse createPayTransaction(PayTransactionRequest request) {
+    public TransactionResponse updateTransactionToSuccess(PayTransactionRequest request) {
         Transaction transaction = transactionRepository.findById(request.transactionId())
                 .orElseThrow(() -> new ApplicationException(TransactionErrorCode.TRANSACTION_NOT_FOUND));
 
@@ -67,20 +66,16 @@ public class TransactionServiceImpl implements TransactionService {
 
             PaymentRequest paymentRequest = new PaymentRequest(
                     transaction.getUserId(),
+                    transaction.getTransactionId(),
                     transaction.getOrderId(),
                     transaction.getOrderName(),
-                    transaction.getSellerId(),
-                    transaction.getAmount(),
-                    transaction.getRedirectUri()
+                    transaction.getAmount()
             );
-            PaymentResponse paymentResponse = paymentServiceClient.processPayment(paymentRequest);
-
-            transaction.updateStatus(Status.valueOf(paymentResponse.status()))
-                    .updatePaymentId(paymentResponse.paymentId());
+            ProcessResponse processResponse = paymentServiceClient.processPayment(paymentRequest).getData();
+            transaction.updateStatus(processResponse.status()).updatePaymentId(processResponse.paymentId());
             transactionRepository.save(transaction);
 
             transactionProvider.sendTransactionStatusMessage(TransactionStatusMessage.from(transaction));
-
             return TransactionResponse.from(transaction);
         } finally {
             distributedLock.unlock(lockKey);
@@ -88,15 +83,57 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    public TransactionResponse createRefundTransaction(TransactionRequest request) {
-        String lockKey = String.format("transaction:%d", request.userId());
+    public TransactionResponse updateTransactionToRefund(UpdateTransactionRequest request) {
+        Transaction transaction = transactionRepository.findByOrderId(request.orderId())
+                .orElseThrow(() -> new ApplicationException(TransactionErrorCode.TRANSACTION_NOT_FOUND));
+
+        String lockKey = String.format("transaction:%d", transaction.getUserId());
 
         try {
             distributedLock.tryLockOrThrow(lockKey);
 
-            Transaction transaction = transactionRepository
-                    .save(request.toEntity())
-                    .updateStatus(Status.SUCCESS);
+            RefundRequest refundRequest = new RefundRequest(
+                    request.userId(),
+                    transaction.getPaymentId(),
+                    request.reason()
+            );
+            ProcessResponse processResponse = paymentServiceClient.processRefund(refundRequest).getData();
+            transaction.updateReason(request.reason())
+                    .updateStatus(processResponse.status());
+            transactionRepository.save(transaction);
+
+            transactionProvider.sendTransactionStatusMessage(TransactionStatusMessage.from(transaction));
+            return TransactionResponse.from(transaction);
+        } finally {
+            distributedLock.unlock(lockKey);
+        }
+    }
+
+    @Override
+    public TransactionResponse updateTransactionToCancellation(UpdateTransactionRequest request) {
+        Transaction transaction = transactionRepository.findByOrderId(request.orderId())
+                .orElseThrow(() -> new ApplicationException(TransactionErrorCode.TRANSACTION_NOT_FOUND));
+
+        String lockKey = String.format("transaction:%d", transaction.getUserId());
+
+        try {
+            distributedLock.tryLockOrThrow(lockKey);
+
+            if (transaction.getStatus() != Status.PENDING) {
+                throw new ApplicationException(TransactionErrorCode.INVALID_TRANSACTION_STATUS);
+            }
+
+            transaction.updateReason(request.reason()).updateStatus(Status.CANCELLATION);
+
+//            CancellationRequest cancellationRequest = new CancellationRequest(
+//                    request.userId(),
+//                    transaction.getPaymentId(),
+//                    request.reason()
+//            );
+//            ProcessResponse processResponse = paymentServiceClient.processCancellation(cancellationRequest).getData();
+//            transaction.updateReason(request.reason())
+//                    .updateStatus(processResponse.status());
+            transactionRepository.save(transaction);
 
             transactionProvider.sendTransactionStatusMessage(TransactionStatusMessage.from(transaction));
             return TransactionResponse.from(transaction);

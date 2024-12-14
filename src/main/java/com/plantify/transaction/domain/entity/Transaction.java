@@ -26,7 +26,7 @@ public class Transaction {
     @Column
     private Long paymentId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String orderId;
 
     @Column(nullable = false)
@@ -37,10 +37,6 @@ public class Transaction {
 
     @Column(nullable = false)
     private Long sellerId;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private TransactionType transactionType;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -76,5 +72,10 @@ public class Transaction {
 
     public void updatePaymentId(Long paymentId) {
         this.paymentId = paymentId;
+    }
+
+    public Transaction updateReason(String reason) {
+        this.reason = reason;
+        return this;
     }
 }

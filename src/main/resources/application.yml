@@ -5,7 +5,7 @@ jasypt:
 
 spring:
   application:
-    name: pay
+    name: transaction
   datasource:
     url: ENC(ox20N75lSmaNhUxP9nnl4eDu/0tc+rQ+jyFleqX96Qh8nKQ1LXnFSPcl5/dVKIBSEGPpk5Bx3iiASOZm1VvjMVoyG9djG04MxlUWNWLcWIU=)
     username: ENC(XhGT41xwg0J9hSXkV9tPjQ==)
@@ -53,4 +53,4 @@ client:
   base:
     url: ENC(6r5+iURZyGrnWE3rn4C1XXhxZpzilbAqGkb4WdQs0fijyMzoZxHRhA==)
   pay:
-    url: ENC(/uXzU5HIg+xvMvQly3thAhGTo/e34W6r0vUsx2vxZvZ4YS7krpmwtPdkBXQzdG5AKi099JD742k=)
+    url: ENC(c6JGZubaYrGS6N9IPBWo9CHR+rg+G44sXuH9vt4CCdIklxKmX0PtrA==)
