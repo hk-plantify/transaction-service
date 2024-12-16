@@ -30,7 +30,7 @@ public class TransactionStatusServiceImpl implements TransactionStatusService {
             Transaction transaction = transactionRepository.findById(message.transactionId())
                     .orElseThrow(() -> new ApplicationException(TransactionErrorCode.TRANSACTION_NOT_FOUND));
 
-            transaction.updateStatus(Status.SUCCESS);
+            transaction.updateStatus(message.status());
         } finally {
             distributedLock.unlock(lockKey);
         }
