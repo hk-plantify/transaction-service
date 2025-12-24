@@ -1,4 +1,4 @@
-package com.plantify.transaction.domain.dto;
+package com.plantify.transaction.domain.dto.response;
 
 import com.plantify.transaction.domain.entity.Transaction;
 

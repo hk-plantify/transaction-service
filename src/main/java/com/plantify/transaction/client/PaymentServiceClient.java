@@ -1,6 +1,9 @@
 package com.plantify.transaction.client;
 
-import com.plantify.transaction.domain.dto.*;
+import com.plantify.transaction.domain.dto.request.CancellationRequest;
+import com.plantify.transaction.domain.dto.request.PaymentRequest;
+import com.plantify.transaction.domain.dto.request.RefundRequest;
+import com.plantify.transaction.domain.dto.response.ProcessResponse;
 import com.plantify.transaction.global.response.ApiResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
