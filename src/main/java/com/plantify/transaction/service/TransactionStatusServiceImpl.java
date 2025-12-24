@@ -5,51 +5,73 @@ import com.plantify.transaction.domain.entity.Status;
 import com.plantify.transaction.domain.entity.Transaction;
 import com.plantify.transaction.global.exception.ApplicationException;
 import com.plantify.transaction.global.exception.errorcode.TransactionErrorCode;
-import com.plantify.transaction.global.util.DistributedLock;
+import com.plantify.transaction.global.util.LockProvider;
 import com.plantify.transaction.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RLock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.concurrent.TimeUnit;
+
 @Service
-@Transactional
 @RequiredArgsConstructor
 public class TransactionStatusServiceImpl implements TransactionStatusService {
 
     private final TransactionRepository transactionRepository;
-    private final DistributedLock distributedLock;
+    private final LockProvider lockProvider;
 
     // 성공
     @Override
+    @Transactional
     public void processSuccessfulTransaction(TransactionStatusMessage message) {
-        String lockKey = String.format("transaction:result:%d", message.userId());
+
+        RLock lock = lockProvider.getUserLock(message.userId());
+        boolean locked = false;
 
         try {
-            distributedLock.tryLockOrThrow(lockKey);
+            locked = lock.tryLock(3, 10, TimeUnit.SECONDS);
+            if (!locked) {
+                throw new ApplicationException(TransactionErrorCode.CONCURRENT_UPDATE);
+            }
 
             Transaction transaction = transactionRepository.findById(message.transactionId())
                     .orElseThrow(() -> new ApplicationException(TransactionErrorCode.TRANSACTION_NOT_FOUND));
 
             transaction.updateStatus(message.status());
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ApplicationException(TransactionErrorCode.CONCURRENT_UPDATE);
         } finally {
-            distributedLock.unlock(lockKey);
+            if (locked) lock.unlock();
         }
     }
 
     // 실패
     @Override
+    @Transactional
     public void processFailedTransaction(TransactionStatusMessage message) {
-        String lockKey = String.format("transaction:result:%d", message.userId());
+
+        RLock lock = lockProvider.getUserLock(message.userId());
+        boolean locked = false;
 
         try {
-            distributedLock.tryLockOrThrow(lockKey);
+            locked = lock.tryLock(3, 10, TimeUnit.SECONDS);
+            if (!locked) {
+                throw new ApplicationException(TransactionErrorCode.CONCURRENT_UPDATE);
+            }
 
             Transaction transaction = transactionRepository.findById(message.transactionId())
                     .orElseThrow(() -> new ApplicationException(TransactionErrorCode.TRANSACTION_NOT_FOUND));
 
             transaction.updateStatus(Status.FAILED);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ApplicationException(TransactionErrorCode.CONCURRENT_UPDATE);
         } finally {
-            distributedLock.unlock(lockKey);
+            if (locked) lock.unlock();
         }
     }
 }

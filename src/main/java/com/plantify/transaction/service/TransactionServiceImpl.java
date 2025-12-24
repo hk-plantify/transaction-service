@@ -2,19 +2,26 @@ package com.plantify.transaction.service;
 
 import com.plantify.transaction.client.PaymentServiceClient;
 import com.plantify.transaction.domain.dto.*;
+import com.plantify.transaction.domain.dto.request.*;
+import com.plantify.transaction.domain.dto.response.ProcessResponse;
+import com.plantify.transaction.domain.dto.response.TransactionResponse;
 import com.plantify.transaction.domain.entity.Status;
 import com.plantify.transaction.domain.entity.Transaction;
 import com.plantify.transaction.global.exception.ApplicationException;
 import com.plantify.transaction.global.exception.errorcode.TransactionErrorCode;
-import com.plantify.transaction.global.util.DistributedLock;
+import com.plantify.transaction.global.util.LockProvider;
+import com.plantify.transaction.global.util.UserInfoProvider;
 import com.plantify.transaction.kafka.TransactionProvider;
 import com.plantify.transaction.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 @Slf4j
 @Service
@@ -24,121 +31,210 @@ public class TransactionServiceImpl implements TransactionService {
     private final TransactionRepository transactionRepository;
     private final PaymentServiceClient paymentServiceClient;
     private final TransactionProvider transactionProvider;
-    private final DistributedLock distributedLock;
+    private final LockProvider lockProvider;
+    private final UserInfoProvider userInfoProvider;
 
     @Override
     public TransactionResponse getTransactionById(Long transactionId) {
         Transaction transaction = transactionRepository.findById(transactionId)
-                .orElseThrow(() -> new ApplicationException(TransactionErrorCode.TRANSACTION_NOT_FOUND));
+                .orElseThrow(() ->
+                        new ApplicationException(TransactionErrorCode.TRANSACTION_NOT_FOUND));
         return TransactionResponse.from(transaction);
     }
 
     @Override
     public boolean existTransaction(Long userId, String orderId, List<Status> statuses) {
-        return transactionRepository.existsByUserIdAndOrderIdAndStatusIn(userId, orderId, statuses);
+        return transactionRepository.existsByUserIdAndOrderIdAndStatusIn(
+                userId, orderId, statuses
+        );
     }
 
+    // PENDING 트랜잭션
     @Override
     @Transactional
     public TransactionResponse createPendingTransaction(TransactionRequest request) {
-        String lockKey = String.format("transaction:%d", request.userId());
+        Long userId = userInfoProvider.getUserInfo().userId();
 
-        try {
-            distributedLock.tryLockOrThrow(lockKey);
+        Transaction transaction = withTransactionLock(userId, () ->
+                transactionRepository.save(request.toEntity(userId))
+        );
 
-            Transaction transaction = transactionRepository.save(request.toEntity());
-
-            return TransactionResponse.from(transaction);
-        } finally {
-            distributedLock.unlock(lockKey);
-        }
+        return TransactionResponse.from(transaction);
     }
 
+    // 결제 성공 (PENDING -> PAYMENT)
     @Override
+    @Transactional
     public TransactionResponse updateTransactionToSuccess(PayTransactionRequest request) {
+
         Transaction transaction = transactionRepository.findById(request.transactionId())
-                .orElseThrow(() -> new ApplicationException(TransactionErrorCode.TRANSACTION_NOT_FOUND));
+                .orElseThrow(() ->
+                        new ApplicationException(TransactionErrorCode.TRANSACTION_NOT_FOUND));
 
-        String lockKey = String.format("transaction:%d", transaction.getUserId());
+        withTransactionLock(transaction.getUserId(), () -> {
 
-        try {
-            distributedLock.tryLockOrThrow(lockKey);
+            if (transaction.getStatus() != Status.PENDING) {
+                return;
+            }
 
             PaymentRequest paymentRequest = new PaymentRequest(
-                    transaction.getUserId(),
                     transaction.getTransactionId(),
                     transaction.getOrderId(),
                     transaction.getOrderName(),
                     transaction.getAmount()
             );
-            ProcessResponse processResponse = paymentServiceClient.processPayment(paymentRequest).getData();
-            transaction.updateStatus(processResponse.status()).updatePaymentId(processResponse.paymentId());
+
+            ProcessResponse response =
+                    paymentServiceClient.processPayment(paymentRequest).getData();
+
+            if (response.status() != Status.PAYMENT) {
+                log.error("Invalid payment result. transactionId={}, status={}",
+                        transaction.getTransactionId(),
+                        response.status());
+                throw new ApplicationException(TransactionErrorCode.TRANSACTION_FAILED);
+            }
+
+            transaction.updateStatus(Status.PAYMENT)
+                    .updatePaymentId(response.paymentId());
+
             transactionRepository.save(transaction);
 
-            transactionProvider.sendTransactionStatusMessage(TransactionStatusMessage.from(transaction));
-            return TransactionResponse.from(transaction);
-        } finally {
-            distributedLock.unlock(lockKey);
-        }
+            transactionProvider.sendTransactionStatusMessage(
+                    TransactionStatusMessage.from(transaction)
+            );
+        });
+
+        return TransactionResponse.from(transaction);
     }
 
+    // 환불 처리 (PAYMENT -> REFUND)
     @Override
+    @Transactional
     public TransactionResponse updateTransactionToRefund(UpdateTransactionRequest request) {
+
         Transaction transaction = transactionRepository.findByOrderId(request.orderId())
-                .orElseThrow(() -> new ApplicationException(TransactionErrorCode.TRANSACTION_NOT_FOUND));
+                .orElseThrow(() ->
+                        new ApplicationException(TransactionErrorCode.TRANSACTION_NOT_FOUND));
 
-        String lockKey = String.format("transaction:%d", transaction.getUserId());
+        withTransactionLock(transaction.getUserId(), () -> {
 
-        try {
-            distributedLock.tryLockOrThrow(lockKey);
+            if (transaction.getStatus() != Status.PAYMENT) {
+                throw new ApplicationException(TransactionErrorCode.INVALID_TRANSACTION_STATUS);
+            }
 
             RefundRequest refundRequest = new RefundRequest(
-                    request.userId(),
                     transaction.getPaymentId(),
                     request.reason()
             );
-            ProcessResponse processResponse = paymentServiceClient.processRefund(refundRequest).getData();
-            transaction.updateReason(request.reason())
-                    .updateStatus(processResponse.status());
+
+            paymentServiceClient.processRefund(refundRequest);
+
+            transaction.updateStatus(Status.REFUND)
+                    .updateReason(request.reason());
+
             transactionRepository.save(transaction);
 
-            transactionProvider.sendTransactionStatusMessage(TransactionStatusMessage.from(transaction));
-            return TransactionResponse.from(transaction);
-        } finally {
-            distributedLock.unlock(lockKey);
-        }
+            transactionProvider.sendTransactionStatusMessage(
+                    TransactionStatusMessage.from(transaction)
+            );
+        });
+
+        return TransactionResponse.from(transaction);
     }
 
+    // 결제 취소 (PENDING -> CANCELLATION)
     @Override
+    @Transactional
     public TransactionResponse updateTransactionToCancellation(UpdateTransactionRequest request) {
+
         Transaction transaction = transactionRepository.findByOrderId(request.orderId())
-                .orElseThrow(() -> new ApplicationException(TransactionErrorCode.TRANSACTION_NOT_FOUND));
+                .orElseThrow(() ->
+                        new ApplicationException(TransactionErrorCode.TRANSACTION_NOT_FOUND));
 
-        String lockKey = String.format("transaction:%d", transaction.getUserId());
-
-        try {
-            distributedLock.tryLockOrThrow(lockKey);
+        withTransactionLock(transaction.getUserId(), () -> {
 
             if (transaction.getStatus() != Status.PENDING) {
                 throw new ApplicationException(TransactionErrorCode.INVALID_TRANSACTION_STATUS);
             }
 
-            transaction.updateReason(request.reason()).updateStatus(Status.CANCELLATION);
+            CancellationRequest cancellationRequest = new CancellationRequest(
+                    transaction.getPaymentId(),
+                    request.reason()
+            );
 
-//            CancellationRequest cancellationRequest = new CancellationRequest(
-//                    request.userId(),
-//                    transaction.getPaymentId(),
-//                    request.reason()
-//            );
-//            ProcessResponse processResponse = paymentServiceClient.processCancellation(cancellationRequest).getData();
-//            transaction.updateReason(request.reason())
-//                    .updateStatus(processResponse.status());
+            paymentServiceClient.processCancellation(cancellationRequest);
+
+            transaction.updateStatus(Status.CANCELLATION)
+                    .updateReason(request.reason());
+
             transactionRepository.save(transaction);
 
-            transactionProvider.sendTransactionStatusMessage(TransactionStatusMessage.from(transaction));
-            return TransactionResponse.from(transaction);
+            transactionProvider.sendTransactionStatusMessage(
+                    TransactionStatusMessage.from(transaction)
+            );
+        });
+
+        return TransactionResponse.from(transaction);
+    }
+
+    // 스케줄러용 만료 처리 (PENDING -> FAILED)
+    @Override
+    @Transactional
+    public void failExpiredTransaction(Long transactionId) {
+
+        Transaction transaction = transactionRepository.findById(transactionId)
+                .orElseThrow(() ->
+                        new ApplicationException(TransactionErrorCode.TRANSACTION_NOT_FOUND));
+
+        withTransactionLock(transaction.getUserId(), () -> {
+
+            if (transaction.getStatus() != Status.PENDING) {
+                return;
+            }
+
+            transaction.updateStatus(Status.FAILED);
+            transactionRepository.save(transaction);
+
+            transactionProvider.sendTransactionStatusMessage(
+                    TransactionStatusMessage.from(transaction)
+            );
+
+        });
+    }
+
+    private void withTransactionLock(Long userId, Runnable action) {
+        RLock lock = lockProvider.getUserLock(userId);
+        boolean locked = false;
+
+        try {
+            locked = lock.tryLock(3, 10, TimeUnit.SECONDS);
+            if (!locked) {
+                throw new ApplicationException(TransactionErrorCode.CONCURRENT_UPDATE);
+            }
+            action.run();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ApplicationException(TransactionErrorCode.CONCURRENT_UPDATE);
         } finally {
-            distributedLock.unlock(lockKey);
+            if (locked) lock.unlock();
+        }
+    }
+
+    private <T> T withTransactionLock(Long userId, Supplier<T> action) {
+        RLock lock = lockProvider.getUserLock(userId);
+        boolean locked = false;
+
+        try {
+            locked = lock.tryLock(3, 10, TimeUnit.SECONDS);
+            if (!locked) {
+                throw new ApplicationException(TransactionErrorCode.CONCURRENT_UPDATE);
+            }
+            return action.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ApplicationException(TransactionErrorCode.CONCURRENT_UPDATE);
+        } finally {
+            if (locked) lock.unlock();
         }
     }
 }

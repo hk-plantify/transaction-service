@@ -1,17 +1,16 @@
-package com.plantify.transaction.domain.dto;
+package com.plantify.transaction.domain.dto.request;
 
 import com.plantify.transaction.domain.entity.Status;
 import com.plantify.transaction.domain.entity.Transaction;
 
 public record TransactionRequest(
-        Long userId,
         Long sellerId,
         String orderId,
         String orderName,
         Long amount,
         String redirectUri
 ) {
-    public Transaction toEntity() {
+    public Transaction toEntity(Long userId) {
         return Transaction.builder()
                 .userId(userId)
                 .sellerId(sellerId)

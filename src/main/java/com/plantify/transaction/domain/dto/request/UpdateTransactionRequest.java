@@ -1,7 +1,6 @@
-package com.plantify.transaction.domain.dto;
+package com.plantify.transaction.domain.dto.request;
 
 public record UpdateTransactionRequest(
-        Long userId,
         String orderId,
         String reason
 ) {
