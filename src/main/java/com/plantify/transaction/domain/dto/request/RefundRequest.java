@@ -1,7 +1,6 @@
-package com.plantify.transaction.domain.dto;
+package com.plantify.transaction.domain.dto.request;
 
 public record RefundRequest (
-        Long userId,
         Long paymentId,
         String reason
 )  {

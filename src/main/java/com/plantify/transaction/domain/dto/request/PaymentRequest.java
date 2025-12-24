@@ -1,11 +1,9 @@
-package com.plantify.transaction.domain.dto;
+package com.plantify.transaction.domain.dto.request;
 
 public record PaymentRequest(
-        Long userId,
         Long transactionId,
         String orderId,
         String orderName,
         Long amount
 ) {
-
 }
